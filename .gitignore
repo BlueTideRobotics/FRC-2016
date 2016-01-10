@@ -1,0 +1,21 @@
+# C++ ignored types (from github.com/github/gitignore/)
+*.slo
+*.lo
+*.o
+*.obj
+*.gch
+*.pch
+*.so
+*.dylib
+*.dll
+*.mod
+*.lai
+*.la
+*.a
+*.lib
+*.exe
+*.out
+*.app
+
+# Eclipse metadata
+**/.metadata/
