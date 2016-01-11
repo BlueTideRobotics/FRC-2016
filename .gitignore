@@ -3,4 +3,5 @@
 **.o
 
 # Eclipse metadata
-**.metadata/
+**/.metadata/
+RemoteSystemsTempFiles/
