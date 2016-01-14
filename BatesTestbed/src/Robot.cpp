@@ -1,8 +1,6 @@
 #include "WPILib.h"
 #include "PID.h"
 
-#define FUCK_EVERYTHING 1
-
 
 double map(double value,double high, double low)
 {
