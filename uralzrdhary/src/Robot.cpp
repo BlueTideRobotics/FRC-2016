@@ -1,5 +1,6 @@
 #include "WPILib.h"
-
+#include "PID.h"
+#include "SageFunctions.h"
 
 class Robot: public IterativeRobot
 {
@@ -9,6 +10,11 @@ private:
 
 	CANJaguar frontLeft, frontRight, rearLeft, rearRight;
 	RobotDrive myRobot;
+
+	CANTalon sageArm;
+	AnalogInput sagePot;
+
+	float sageArmSetVal;
 public:
 	Robot():
 		stick(0),
@@ -19,7 +25,12 @@ public:
 		rearLeft(10),
 		rearRight(13),
 
-		myRobot(frontLeft, rearLeft, frontRight, rearRight)
+		myRobot(frontLeft, rearLeft, frontRight, rearRight),
+
+		sageArm(14),
+		sagePot(0),
+
+		sageArmSetVal(0.0)
 	{
 		lw = LiveWindow::GetInstance();
 	}
@@ -50,9 +61,20 @@ private:
 		SmartDashboard::PutNumber("stickTwist", stick.GetRawAxis(5));
 
 		myRobot.ArcadeDrive(
-				-stick.GetY() ,//* SmartDashboard::GetNumber("Y reduction factor", 1),
-				-stick.GetRawAxis(5) //* SmartDashboard::GetNumber("twist reduction factor", 1)
+				stick.GetY() * SmartDashboard::GetNumber("Y reduction factor", 1),
+				-stick.GetRawAxis(5) * SmartDashboard::GetNumber("twist reduction factor", 1)
 		);
+
+		if (stick.GetRawButton(4))
+			sageArmSetVal = 0.45;
+		else if (stick.GetRawButton(3))
+			sageArmSetVal = -1.0;
+		else
+			sageArmSetVal = 0.0;
+
+		sageArm.Set(sageArmSetVal);
+
+		SmartDashboard::PutNumber("pot wubz", sagePot.GetVoltage());
 	}
 
 	void TestPeriodic()

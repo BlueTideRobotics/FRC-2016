@@ -38,6 +38,8 @@ float deadZone(float value,float deadzone)
 class Robot: public IterativeRobot
 {
 	Joystick stick;
+	Joystick stick2;
+
 	LiveWindow *lw = LiveWindow::GetInstance();
 
 	Servo servo;
@@ -50,7 +52,7 @@ class Robot: public IterativeRobot
 	CANJaguar jag2;
 	CanTalonSRX tal1;
 
-	//Compressor pcm; // Uncomment if you want to manually power the compressor or read pressure trigger.
+	Compressor pcm; // Uncomment if you want to manually power the compressor or read pressure trigger.
 	DoubleSolenoid piston;
 	bool pistonVal;
 
@@ -60,6 +62,7 @@ class Robot: public IterativeRobot
 public:
 	Robot() :
 		stick(0),
+		stick2(1),
 		lw(NULL),
 
 		servo(9),
@@ -71,7 +74,7 @@ public:
 		jag2(11),
 		tal1(12),
 
-		// pcm(),
+		pcm(),
 		piston(0,7),
 		pistonVal(true),
 		accel(),
@@ -99,14 +102,16 @@ private:
 
 	void TeleopInit()
 	{
-
+		pcm.SetClosedLoopControl(false);
+		pcm.Stop();
+		//pcm.SetCompressor(false);
 	}
 
 	void TeleopPeriodic()
 	{
 		SmartDashboard::PutNumber("joystickX",stick.GetX());
 		SmartDashboard::PutNumber("joystickY",stick.GetY());
-		SmartDashboard::PutBoolean("fucking buttons", stick.GetRawButton(1));
+		//SmartDashboard::PutBoolean("fucking buttons", stick.GetRawButton(1));
 
 		//SmartDashboard::PutNumber("potentiometer voltage", pot.GetVoltage());
 		SmartDashboard::PutBoolean("infra",infra.Get());
@@ -121,8 +126,8 @@ private:
 		SmartDashboard::PutNumber("servo", servo.Get());
 
 
-		jag1.Set(0.0);
-		jag2.Set(stick.GetY());
+		//jag1.Set(0.0);
+		//jag2.Set(stick.GetY());
 		//tal1.Set(stick.GetY());
 
 		/*SmartDashboard::PutNumber("encpos", enc.Get());
@@ -138,6 +143,15 @@ private:
 			actuatePressed = false;
 
 		SmartDashboard::PutBoolean("piston forward", piston.Get() == DoubleSolenoid::kForward);
+
+
+		jag1.Set(infra.Get() || !stick.GetRawButton(1) ? 0 : 1);
+		jag2.Set(0.0);
+
+		SmartDashboard::PutNumber("jag1", jag1.Get());
+		SmartDashboard::PutNumber("jag2", jag2.Get());
+
+
 	}
 
 	void TestPeriodic()
