@@ -30,12 +30,16 @@ private:
 	CANTalon whip;
 	float whipSetVal;
 
-	float testMotorSetVal;
-	SendableChooser *chooser;
-	const std::string motorNameSage = "Sage arm";
-	const std::string motorNameWinch = "Winch";
-	const std::string motorNameWhip = "Whip";
-	std::string testMotorSelected;
+	CANJaguar intake, shooter; // CHANGE TO CANTalon at competition
+	float intakeSetVal, shooterSetVal;
+
+	Timer shooterTimer;
+	bool shootingNow;
+
+	Servo shootServo;
+	DigitalInput ballInfra;
+
+	float shotPower;
 
 	AnalogGyro gyro;
 public:
@@ -59,7 +63,18 @@ public:
 		whip(15),
 		whipSetVal(0.0),
 
-		testMotorSetVal(0.0),
+		intake(11),
+		shooter(10),
+		intakeSetVal(0.0),
+		shooterSetVal(0.0),
+
+		shooterTimer(),
+		shootingNow(false),
+
+		shootServo(0),
+		ballInfra(9),
+
+		shotPower(0.0),
 
 		gyro(0)
 	{
@@ -73,11 +88,8 @@ private:
 
 		gyro.Calibrate();
 
-		chooser = new SendableChooser();
-		chooser->AddDefault(motorNameSage, (void*)&motorNameSage);
-		chooser->AddObject(motorNameWinch, (void*)&motorNameWinch);
-		chooser->AddObject(motorNameWhip, (void*)&motorNameWhip);
-		SmartDashboard::PutData("Test-motor mechanism:", chooser);
+		SmartDashboard::PutNumber("intake power", 0.5);
+		SmartDashboard::PutNumber("shot power", 1.0);
 	}
 	void AutonomousInit()
 	{
@@ -97,37 +109,58 @@ private:
 	void TeleopPeriodic()
 	{
 		myRobot.ArcadeDrive(-stick.GetY(), -stick.GetRawAxis(5));
-		///////////////////////////////////////////////
-		//THE FRONT IS THE SIDE THAT ISNT OPEN LOL XD//
-		///////////////////////////////////////////////
 
-		// COPY THIS FOR OTHER MOTORS AFTER TESTING
-		// Sage arm (test for vals)
-		/*if (stick.GetRawButton(4))
+		sageArmSetVal = 0.0;
+		winchSetVal = 0.0;
+		winchSetVal = 0.0;
+		whipSetVal = 0.0;
+		shooterSetVal = 0.0;
+		intakeSetVal = 0.0;
+
+		if (stick.GetRawButton(4))
 			sageArmSetVal = 0.45;
 		else if (stick.GetRawButton(3))
 			sageArmSetVal = -1.0;
 		else
-			sageArmSetVal = 0.0;*/
+			sageArmSetVal = 0.0;
 
-		SmartDashboard::PutNumber("Impending test-motor val", stick.GetRawAxis(2));
-		SmartDashboard::PutBoolean("Test-motor activated", stick.GetRawButton(7));
-		if (stick.GetRawButton(7))
-			testMotorSetVal=-stick.GetRawAxis(2);
+		shotPower = SmartDashboard::GetNumber("shot power", 0.0);
+		// TODO: vision processing and things (maybe)
+
+		if(stick.GetRawButton(6))
+			intakeSetVal = -SmartDashboard::GetNumber("intake power", 0.0);
 		else
-			testMotorSetVal = 0.0;
-		testMotorSelected = *((std::string*)chooser->GetSelected());
-		if (testMotorSelected == motorNameSage)
-			sageArmSetVal = testMotorSetVal;
-		else if (testMotorSelected == motorNameWinch)
-			winchSetVal = testMotorSetVal;
-		else if (testMotorSelected == motorNameWhip)
-			whipSetVal = testMotorSetVal;
+			intakeSetVal = 0.0;
+
+		if (stick.GetRawButton(2) && !shootingNow) {
+			shootingNow = true;
+			shooterTimer.Reset();
+			shooterTimer.Start();
+		}
+		if (shootingNow) {
+			if (shooterTimer.Get() < 1.5) {
+				shooterSetVal = shotPower;
+				intakeSetVal = -shotPower;
+
+				if (shooterTimer.Get() > 1)
+					shootServo.Set(1.0);
+			}
+			else {
+				shootServo.Set(0.5);
+
+				shooterTimer.Stop();
+				shootingNow = false;
+			}
+		}
+
+		SmartDashboard::PutBoolean("Ball loaded", ballInfra.Get());
 
 		sageArm.Set(sageArmSetVal);
 		winch1.Set(winchSetVal);
 		winch2.Set(winchSetVal);
 		whip.Set(whipSetVal);
+		shooter.Set(shooterSetVal);
+		intake.Set(intakeSetVal);
 
 		SmartDashboard::PutNumber("Gyro", gyro.GetAngle());
 	}
