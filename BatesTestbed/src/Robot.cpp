@@ -126,9 +126,13 @@ private:
 		SmartDashboard::PutNumber("servo", servo.Get());
 
 
-		//jag1.Set(0.0);
-		//jag2.Set(stick.GetY());
+		jag1.Set(stick.GetY());
+		jag2.Set(stick.GetY());
 		//tal1.Set(stick.GetY());
+
+		SmartDashboard::PutNumber("jag1", jag1.Get());
+		SmartDashboard::PutNumber("jag2", jag2.Get());
+
 
 		/*SmartDashboard::PutNumber("encpos", enc.Get());
 		SmartDashboard::PutNumber("encspd", enc.GetRate());*/
@@ -143,13 +147,6 @@ private:
 			actuatePressed = false;
 
 		SmartDashboard::PutBoolean("piston forward", piston.Get() == DoubleSolenoid::kForward);
-
-
-		jag1.Set(infra.Get() || !stick.GetRawButton(1) ? 0 : 1);
-		jag2.Set(0.0);
-
-		SmartDashboard::PutNumber("jag1", jag1.Get());
-		SmartDashboard::PutNumber("jag2", jag2.Get());
 
 
 	}
