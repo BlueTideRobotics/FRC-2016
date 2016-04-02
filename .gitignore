@@ -1,8 +1,6 @@
-# Compiled binaries
-**/FRCUserProgram
-**.o
+**
 
-# Eclipse metadata
-**/.metadata/
-RemoteSystemsTempFiles/
-**/.settings/
+! **.cpp
+! **.h
+! LICENSE
+! README.md
