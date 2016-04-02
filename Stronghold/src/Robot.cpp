@@ -124,11 +124,11 @@ private:
 		else
 			sageArmSetVal = 0.0;
 
-		shotPower = SmartDashboard::GetNumber("shot power", 0.0);
+		shotPower = SmartDashboard::GetNumber("shot power", 1.0);
 		// TODO: vision processing and things (maybe)
 
 		if(stick.GetRawButton(6))
-			intakeSetVal = -SmartDashboard::GetNumber("intake power", 0.0);
+			intakeSetVal = -SmartDashboard::GetNumber("intake power", 0.5);
 		else
 			intakeSetVal = 0.0;
 
