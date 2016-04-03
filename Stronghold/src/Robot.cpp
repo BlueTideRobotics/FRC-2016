@@ -34,10 +34,9 @@ private:
 	float intakeSetVal, shooterSetVal;
 
 	Timer shooterTimer;
-	bool shootingNow;
-
+	float topPower, bottomPower;
+	bool longShootingNow, shortShootingNow;
 	Servo shootServo;
-	DigitalInput ballInfra;
 
 	Timer autonTimer;
 
@@ -76,10 +75,11 @@ public:
 		shooterSetVal(0.0),
 
 		shooterTimer(),
-		shootingNow(false),
-
+		topPower(0.0),
+		bottomPower(0.0),
+		longShootingNow(false),
+		shortShootingNow(false),
 		shootServo(0),
-		ballInfra(9),
 
 		autonTimer(),
 
@@ -110,11 +110,6 @@ private:
 
 		SmartDashboard::PutNumber("top power", 1.0);
 		SmartDashboard::PutNumber("bottom power", 1.0);
-		SmartDashboard::PutNumber("wind-up delay", 3.0);
-		SmartDashboard::PutNumber("servo delay", 1.0);
-
-		SmartDashboard::PutNumber("servo inactive setting", 0.0);
-		SmartDashboard::PutNumber("servo active setting", 0.5);
 
 		SmartDashboard::PutNumber("gyro P", 1);
 		SmartDashboard::PutNumber("gyro I", 0);
@@ -122,8 +117,6 @@ private:
 	}
 
 	void goalTracker() {
-		/* TODO: test */
-
 		ParticleAnalysisReport particle;
 		// Threshold targetThreshold(70,140,22,255,100,255); // Sage, 2014
 		Threshold targetThreshold(60,140,20,255,100,255);
@@ -151,7 +144,7 @@ private:
 	}
 	float getGoalAngleOffset() {
 		/* TODO */
-		// math your way from the x-val (from __goalTracker) to an offset angle?
+		// math your way from the x-val (from goalTracker) to an offset angle?
 
 		return 0.0;
 	}
@@ -159,7 +152,7 @@ private:
 		/* TODO
 		 * Precondition: isValidShot(centerY)
 		 */
-		// math your way from the y-val (from __goalTracker) to a required shot power?
+		// math your way from the y-val (from goalTracker) to a required shot power?
 		return 0.0;
 	}
 	bool isValidShot(float centerY) {
@@ -243,45 +236,58 @@ private:
 
 		winchSetVal = 0.0;
 		whipSetVal = 0.0;
-		if (stick.GetRawButton(5) && stick.GetRawButton(1))
+		if (stick.GetRawButton(9))
 			winchSetVal = 1.0;
-		else if (stick.GetRawButton(5))
+		else if (stick.GetRawButton(10))
 			whipSetVal = 1.0;
 
 		shooterSetVal = 0.0;
 		intakeSetVal = 0.0;
-
 		if(stick.GetRawButton(6))
 			intakeSetVal = -0.5;
-		else
-			intakeSetVal = 0.0;
 
-		if (stick.GetRawButton(2) && !shootingNow) {
-			shootingNow = true;
+		if (stick.GetRawButton(2) && !longShootingNow) {
+			longShootingNow = true;
 			shooterTimer.Reset();
 			shooterTimer.Start();
 
-			// shotPower = SmartDashboard::GetNumber("shot power", 1.0);
+			topPower = SmartDashboard::GetNumber("top power", 1.0);
+			bottomPower = SmartDashboard::GetNumber("bottom power", 1.0);
 			// TODO: vision processing and things (maybe)
 		}
-
-		if (shootingNow) {
-			if (shooterTimer.Get() < SmartDashboard::GetNumber("wind-up delay", 3.0) + SmartDashboard::GetNumber("servo delay", 1.0)) {
-				shooterSetVal = SmartDashboard::GetNumber("top power", 1.0);
-				intakeSetVal = -SmartDashboard::GetNumber("bottom power", 1.0);
-
-				if (shooterTimer.Get() > SmartDashboard::GetNumber("wind-up delay", 3.0))
-					shootServo.Set(SmartDashboard::GetNumber("servo active setting", 0.5));
-			}
-			else {
-				shootServo.Set(SmartDashboard::GetNumber("servo inactive setting", 0.0));
-
-				shooterTimer.Stop();
-				shootingNow = false;
-			}
+		else if (stick.GetRawButton(5) && !shortShootingNow) {
+			shortShootingNow = true;
+			shooterTimer.Reset();
+			shooterTimer.Start();
 		}
 
-		SmartDashboard::PutBoolean("Ball loaded", ballInfra.Get());
+		if (longShootingNow) {
+			if (shooterTimer.Get() < 4) {
+				shooterSetVal = topPower;
+				intakeSetVal = -bottomPower;
+
+				if (shooterTimer.Get() > 3)
+					shootServo.Set(0.5);
+			}
+			else {
+				shootServo.Set(0.0);
+
+				shooterTimer.Stop();
+				longShootingNow = false;
+			}
+		}
+		else if (shortShootingNow) {
+			if (shooterTimer.Get() < 1)
+				shootServo.Set(0.5);
+			if (shooterTimer.Get() > 1)
+				intakeSetVal = 1.0;
+			if (shooterTimer.Get() > 3)
+				shootServo.Set(0.0);
+			if (shooterTimer.Get() > 5) {
+				shortShootingNow = false;
+				shooterTimer.Stop();
+			}
+		}
 
 		sageArm.Set(sageArmSetVal);
 		winch1.Set(winchSetVal);
