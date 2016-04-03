@@ -39,14 +39,16 @@ private:
 	Servo shootServo;
 	DigitalInput ballInfra;
 
-	float shotPower;
-
 	Timer autonTimer;
 
 	AnalogGyro gyro;
 	PID gyroPID;
 	bool gyroPIDrunning;
 	double gyroPIDoutput;
+
+	double centerX, centerY;
+	HSLImage *targetImage;
+	AxisCamera *cam;
 public:
 	Robot():
 		stick(0),
@@ -79,16 +81,17 @@ public:
 		shootServo(0),
 		ballInfra(9),
 
-		shotPower(0.0),
-
 		autonTimer(),
 
 		gyro(0),
 		gyroPID(0,0,0,360,360),
 		gyroPIDrunning(false),
-		gyroPIDoutput(0.0)
-	{
+		gyroPIDoutput(0.0),
 
+		centerX(0),
+		centerY(0)
+	{
+		cam = new AxisCamera("axis-camera.local");
 	}
 
 private:
@@ -98,44 +101,76 @@ private:
 
 		gyro.Calibrate();
 
-		SmartDashboard::PutNumber("intake power", 0.5);
-		SmartDashboard::PutNumber("shot power", 1.0);
+		cam->WriteBrightness(50);
+		cam->WriteMaxFPS(15);
+		cam->WriteResolution(AxisCamera::kResolution_320x240);
+		//cam->WriteResolution( AxisCamera::kResolution_640x480);
+		cam->WriteCompression(50);
+		cam->GetImage();
+
+		SmartDashboard::PutNumber("top power", 1.0);
+		SmartDashboard::PutNumber("bottom power", 1.0);
+		SmartDashboard::PutNumber("wind-up delay", 3.0);
+		SmartDashboard::PutNumber("servo delay", 1.0);
+
+		SmartDashboard::PutNumber("servo inactive setting", 0.0);
+		SmartDashboard::PutNumber("servo active setting", 0.5);
 
 		SmartDashboard::PutNumber("gyro P", 1);
 		SmartDashboard::PutNumber("gyro I", 0);
 		SmartDashboard::PutNumber("gyro D", 0);
 	}
 
-	void __goalTracker(float& centerX, float& centerY) {
-		/* TODO */
-		centerX = 0.0;
-		centerY = 0.0;
+	void goalTracker() {
+		/* TODO: test */
+
+		ParticleAnalysisReport particle;
+		// Threshold targetThreshold(70,140,22,255,100,255); // Sage, 2014
+		Threshold targetThreshold(60,140,20,255,100,255);
+		BinaryImage *goodTargetImage;
+
+
+		targetImage=cam->GetImage();
+		int particleXsum = 0;
+		int particleYsum = 0;
+		int totalParticleArea = 0;
+
+		goodTargetImage=targetImage->ThresholdHSL(targetThreshold);
+		for(int particleAccess=0;particleAccess<goodTargetImage->GetNumberParticles();particleAccess++)
+		{
+			particle=goodTargetImage->GetParticleAnalysisReport(particleAccess);
+
+			//if (particle.particleArea > { // maybe later
+			particleXsum += particle.center_mass_x * particle.particleArea;
+			particleYsum += particle.center_mass_y * particle.particleArea;
+			totalParticleArea += particle.particleArea;
+		}
+
+		centerX = double(particleXsum) / totalParticleArea;
+		centerY = double(particleYsum) / totalParticleArea;
 	}
 	float getGoalAngleOffset() {
 		/* TODO */
-		float x,y;
-		__goalTracker(x,y);
-
-		// math your way from the x-val to an offset angle?
+		// math your way from the x-val (from __goalTracker) to an offset angle?
 
 		return 0.0;
 	}
 	float getRequiredShotPower() {
-		/* TODO */
-		float x,y;
-		__goalTracker(x,y);
+		/* TODO
+		 * Precondition: isValidShot(centerY)
+		 */
+		// math your way from the y-val (from __goalTracker) to a required shot power?
 		return 0.0;
 	}
-	bool isValidShot() {
+	bool isValidShot(float centerY) {
 		/* TODO */
-		// y-range with the __goalTracker
+		// just check a y-value range
 		return true;
 	}
 	void goToAngleWithPID(float angle) {
 		/* TODO at competition */
 
 		// gyro PID
-		myRobot.ArcadeDrive(0.0, 0.0);
 
 		if(!gyroPIDrunning)
 			gyroPID.ResetPID();
@@ -156,11 +191,10 @@ private:
 		gyroPIDoutput=gyroPID.GetOutput(gyro.GetAngle(),NULL,NULL,NULL);
 		SmartDashboard::PutNumber("gyroPID Output",gyroPIDoutput);
 
-//		if(gyroPIDrunning)
-//			myRobot.ArcadeDrive(0, float(gyroPIDoutput));
-//		else
+		if(gyroPIDrunning)
+			myRobot.ArcadeDrive(0, float(gyroPIDoutput));
+		else
 			myRobot.ArcadeDrive(0.0,0.0);
-		gyroPIDrunning = true;
 	}
 
 	void AutonomousInit()
@@ -179,14 +213,20 @@ private:
 			myRobot.ArcadeDrive(0.0, 0.0);
 	}
 
-	void TeleopInit()
-	{
-	}
+	void TeleopInit() {}
 
 	void TeleopPeriodic()
 	{
-		if(stick.GetRawButton(1))
-			goToAngleWithPID(gyro.GetAngle() + getGoalAngleOffset());
+		if(stick.GetRawButton(1)) {
+			if (!gyroPIDrunning)
+				goalTracker();
+
+			SmartDashboard::PutNumber("x avg",centerX);
+			SmartDashboard::PutNumber("y avg",centerY);
+
+			//goToAngleWithPID(gyro.GetAngle() + getGoalAngleOffset());
+			gyroPIDrunning = true;
+		}
 		else {
 			myRobot.ArcadeDrive(-stick.GetY(), -stick.GetRawAxis(5));
 
@@ -208,8 +248,11 @@ private:
 		else if (stick.GetRawButton(5))
 			whipSetVal = 1.0;
 
+		shooterSetVal = 0.0;
+		intakeSetVal = 0.0;
+
 		if(stick.GetRawButton(6))
-			intakeSetVal = -SmartDashboard::GetNumber("intake power", 0.5);
+			intakeSetVal = -0.5;
 		else
 			intakeSetVal = 0.0;
 
@@ -218,27 +261,24 @@ private:
 			shooterTimer.Reset();
 			shooterTimer.Start();
 
-			shotPower = SmartDashboard::GetNumber("shot power", 1.0);
+			// shotPower = SmartDashboard::GetNumber("shot power", 1.0);
 			// TODO: vision processing and things (maybe)
 		}
-		if (shootingNow) {
-			if (shooterTimer.Get() < 1.5) {
-				shooterSetVal = shotPower;
-				intakeSetVal = -shotPower;
 
-				if (shooterTimer.Get() > 1)
-					shootServo.Set(1.0);
+		if (shootingNow) {
+			if (shooterTimer.Get() < SmartDashboard::GetNumber("wind-up delay", 3.0) + SmartDashboard::GetNumber("servo delay", 1.0)) {
+				shooterSetVal = SmartDashboard::GetNumber("top power", 1.0);
+				intakeSetVal = -SmartDashboard::GetNumber("bottom power", 1.0);
+
+				if (shooterTimer.Get() > SmartDashboard::GetNumber("wind-up delay", 3.0))
+					shootServo.Set(SmartDashboard::GetNumber("servo active setting", 0.5));
 			}
 			else {
-				shootServo.Set(0.5);
+				shootServo.Set(SmartDashboard::GetNumber("servo inactive setting", 0.0));
 
 				shooterTimer.Stop();
 				shootingNow = false;
 			}
-		}
-		else {
-			shooterSetVal = 0.0;
-			intakeSetVal = 0.0;
 		}
 
 		SmartDashboard::PutBoolean("Ball loaded", ballInfra.Get());
