@@ -280,13 +280,16 @@ private:
 			}
 		}
 		else if (shortShootingNow) {
-			if (shooterTimer.Get() < 1)
-				shootServo.Set(0.5);
-			if (shooterTimer.Get() > 1)
+			if (shooterTimer.Get() < 1) {
+				intakeSetVal = -0.5;
+				shooterSetVal = -0.5;
+				shootServo.Set(0.3);
+			}
+			if (shooterTimer.Get() > 2)
 				intakeSetVal = 1.0;
-			if (shooterTimer.Get() > 3)
+			if (shooterTimer.Get() > 5)
 				shootServo.Set(0.0);
-			if (shooterTimer.Get() > 5) {
+			if (shooterTimer.Get() > 6) {
 				shortShootingNow = false;
 				shooterTimer.Stop();
 			}
