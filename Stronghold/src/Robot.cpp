@@ -264,13 +264,25 @@ private:
 			shooterTimer.Start();
 		}
 
+		if (stick.GetRawButton(11)) {
+			longShootingNow = false;
+			shortShootingNow = false;
+		}
+
 		if (longShootingNow) {
 			if (shooterTimer.Get() < 4) {
 				shooterSetVal = topPower;
 				intakeSetVal = -bottomPower;
 
-				if (shooterTimer.Get() > 3)
-					shootServo.Set(0.5);
+				if (shooterTimer.Get() > 3) {
+					if (stick.GetRawButton(2)) {
+						shootServo.Set(0.5);
+						shooterTimer.Start();
+					}
+					else
+						shooterTimer.Stop();
+				}
+
 			}
 			else {
 				shootServo.Set(0.0);
