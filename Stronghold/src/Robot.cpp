@@ -274,15 +274,8 @@ private:
 				shooterSetVal = topPower;
 				intakeSetVal = -bottomPower;
 
-				if (shooterTimer.Get() > 3) {
-					if (stick.GetRawButton(2)) {
-						shootServo.Set(0.5);
-						shooterTimer.Start();
-					}
-					else
-						shooterTimer.Stop();
-				}
-
+				if (shooterTimer.Get() > 3)
+					shootServo.Set(0.5);
 			}
 			else {
 				shootServo.Set(0.0);
