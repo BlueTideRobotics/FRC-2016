@@ -148,7 +148,7 @@ private:
 
 		// 47deg view angle
 		// 320px wide
-		return (centerX-160)*47/320; //either shift the 160 left or right or shift the whole angle (later maybe)
+		return (centerX-160)*62.46/320; //either shift the 160 left or right or shift the whole angle (later maybe)
 	}
 	float getRequiredShotPower() {
 		/* TODO
