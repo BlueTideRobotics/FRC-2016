@@ -275,10 +275,10 @@ private:
 				intakeSetVal = -bottomPower;
 
 				if (shooterTimer.Get() > 3)
-					shootServo.Set(0.5);
+					shootServo.Set(0.75); //0.5
 			}
 			else {
-				shootServo.Set(0.0);
+				shootServo.Set(0.5); //0.0
 
 				shooterTimer.Stop();
 				longShootingNow = false;
